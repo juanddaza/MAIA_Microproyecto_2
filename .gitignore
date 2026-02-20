@@ -1,0 +1,13 @@
+# --- Datos Sensibles ---
+*.xlsx
+*.xls
+*.csv
+*.pkl
+*.json
+
+# --- Archivos de Sistema y Temporales ---
+__pycache__/
+*.pyc
+.ipynb_checkpoints/
+.DS_Store
+.env
