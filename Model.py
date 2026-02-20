@@ -1,3 +1,4 @@
+# Versión inicial del modelo XGBoost - Detección de Fraude
 import pandas as pd
 import os
 file_path = 'universidad.xlsx'
