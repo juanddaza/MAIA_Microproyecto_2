@@ -353,27 +353,28 @@ import xgboost as xgb
 from sklearn.metrics import classification_report, confusion_matrix, precision_recall_curve, auc
 import matplotlib.pyplot as plt
 # ---------------------------------------------------------
-# PASO 4: ENTRENAMIENTO DEL MODELO XGBOOST
+# PASO 4 V2: ENTRENAMIENTO XGBOOST OPTIMIZADO (Anti-Overfitting)
 # ---------------------------------------------------------
-print("🧠 Entrenando el algoritmo Gradient Boosting...")
+print("🧠 Entrenando XGBoost con regularización estricta...")
 
-# Calculamos el ratio de desbalanceo para ayudar al modelo a prestar atención al fraude
 conteo_clases = y_train.value_counts()
-ratio_desbalance = conteo_clases[0] / max(conteo_clases[1], 1) # Legítimos / Fraudes
+ratio_desbalance = conteo_clases[0] / max(conteo_clases[1], 1)
 
-# Configuración del modelo
-modelo_xgb = xgb.XGBClassifier(
-    n_estimators=300,              # Número de árboles
-    learning_rate=0.05,            # Tasa de aprendizaje
-    max_depth=6,                   # Profundidad de cada árbol (evita sobreajuste)
-    scale_pos_weight=ratio_desbalance, # ¡Clave para datos desbalanceados!
-    eval_metric='aucpr',           # Evaluamos usando el Área bajo la curva Precision-Recall
+modelo_xgb_opt = xgb.XGBClassifier(
+    n_estimators=300,
+    learning_rate=0.03,            # Reducimos un poco la velocidad de aprendizaje (aprende más lento pero más seguro)
+    max_depth=4,                   # REDUCIDO de 6 a 4. Árboles más pequeños evitan la memorización extrema.
+    min_child_weight=5,            # NUEVO: Exige al menos 5 observaciones por "hoja". Evita reglas para 1 solo cliente.
+    subsample=0.8,                 # NUEVO: Usa solo el 80% de los datos en cada árbol (introduce aleatoriedad sana).
+    colsample_bytree=0.8,          # NUEVO: Usa solo el 80% de las variables en cada árbol.
+    gamma=1,                       # NUEVO: Penaliza la creación de nuevas ramas si no mejoran sustancialmente el modelo.
+    scale_pos_weight=ratio_desbalance,
+    eval_metric='aucpr',
     random_state=42,
-    n_jobs=-1                      # Usa todos los núcleos de tu procesador
+    n_jobs=-1
 )
 
-# Entrenamiento
-modelo_xgb.fit(X_train, y_train)
+modelo_xgb_opt.fit(X_train, y_train)
 
 # ---------------------------------------------------------
 # PASO 5: PREDICCIÓN Y EVALUACIÓN BANCARIA
@@ -381,7 +382,7 @@ modelo_xgb.fit(X_train, y_train)
 print("📊 Evaluando resultados en el conjunto de prueba (Out-of-Time)...")
 
 # Predecimos la probabilidad de fraude (no solo el 0 o 1)
-y_pred_proba = modelo_xgb.predict_proba(X_test)[:, 1]
+y_pred_proba = modelo_xgb_opt.predict_proba(X_test)[:, 1]
 
 # Definimos un umbral de decisión (por defecto 0.5, pero en bancos suele bajarse a 0.7 o 0.8 para evitar molestar clientes)
 umbral = 0.5
@@ -399,7 +400,7 @@ pr_auc = auc(recall, precision)
 print(f"\n🏆 Área bajo la curva Precisión-Recall (PR-AUC): {pr_auc:.4f}")
 
 # 1. Predecimos sobre los datos de entrenamiento (X_train)
-y_train_pred_proba = modelo_xgb.predict_proba(X_train)[:, 1]
+y_train_pred_proba = modelo_xgb_opt.predict_proba(X_train)[:, 1]
 y_train_pred = (y_train_pred_proba >= umbral).astype(int)
 
 # 2. Imprimimos el reporte comparativo
@@ -420,7 +421,7 @@ import matplotlib.pyplot as plt
 print("Calculando SHAP Values (esto puede tomar unos minutos dependiendo de tu procesador)...")
 
 # 1. Inicializar el explicador de árboles para XGBoost
-explainer = shap.TreeExplainer(modelo_xgb)
+explainer = shap.TreeExplainer(modelo_xgb_opt)
 
 # Nota: Si X_test es muy grande (>30,000 filas), SHAP puede tardar bastante.
 # Es común tomar una muestra representativa para el Summary Plot si hay prisa.
