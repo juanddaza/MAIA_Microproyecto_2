@@ -1,0 +1,19 @@
+# --- 1. Manipulación y Lectura de Datos ---
+pandas
+numpy
+openpyxl
+
+# --- 2. Algoritmos de Machine Learning ---
+scikit-learn
+xgboost
+lightgbm
+
+# --- 3. Explicabilidad y Visualización ---
+shap
+matplotlib
+seaborn
+
+# --- 4. Despliegue y API (Railway) ---
+fastapi
+uvicorn[standard]
+pydantic
